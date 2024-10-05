@@ -72,62 +72,8 @@ jobs:
               --script-chroot \
               alpine-aarch64-$(date +%Y-%m-%d).qcow2 -- ./example/configure.sh
 
-  test-alpine:
-    name: Test on Alpine
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      # We must run this outside the chroot.
-      - run: sudo modprobe nbd max_part=16
-
-      - name: Set up latest Alpine Linux
-        uses: jirutka/setup-alpine@v1
-
-      - name: Build image for x86_64 with BIOS mode and without GPT
-        run: |
-          ./alpine-make-vm-image \
-              --image-format qcow2 \
-              --image-size 2G \
-              --repositories-file example/repositories \
-              --packages "$(cat example/packages)" \
-              --fs-skel-dir example/rootfs \
-              --fs-skel-chown root:root \
-              --script-chroot \
-              alpine-bios-$(date +%Y-%m-%d).qcow2 -- ./example/configure.sh
-        shell: alpine.sh --root {0}
-
-      - name: Build image for x86_64 with UEFI mode
-        run: |
-          ./alpine-make-vm-image \
-              --image-format qcow2 \
-              --image-size 2G \
-              --boot-mode UEFI \
-              --repositories-file example/repositories \
-              --packages "$(cat example/packages)" \
-              --fs-skel-dir example/rootfs \
-              --fs-skel-chown root:root \
-              --script-chroot \
-              alpine-uefi-$(date +%Y-%m-%d).qcow2 -- ./example/configure.sh
-        shell: alpine.sh --root {0}
-
-      - name: Install qemu-aarch64 and register in binfmt
-        uses: jirutka/setup-alpine@v1
+      - name: Store builds
+        uses: actions/upload-artifact@v4
         with:
-          arch: aarch64
-          shell-name: alpine-aarch64.sh
-
-      # Note: We cannot run alpine-make-vm-image inside emulated chroot due to nbd.
-      - name: Build image for aarch64
-        run: |
-          ./alpine-make-vm-image \
-              --arch aarch64 \
-              --branch edge \
-              --image-format qcow2 \
-              --image-size 2G \
-              --packages "$(cat example/packages)" \
-              --fs-skel-dir example/rootfs \
-              --fs-skel-chown root:root \
-              --script-chroot \
-              alpine-aarch64-$(date +%Y-%m-%d).qcow2 -- ./example/configure.sh
-        shell: alpine.sh --root {0}
+          name: alpine-images
+          path: alpine-*.qcow2
